@@ -17,7 +17,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Download, Search, Calendar, Users, Clock, MapPin, Image, ExternalLink } from 'lucide-react';
+import { Download, Search, Calendar, Users, Clock, MapPin, Image, Copy } from 'lucide-react';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
@@ -446,10 +447,14 @@ const Admin = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => window.open(`https://www.google.com/maps?q=${record.clockInLocation}`, '_blank')}
+                                onClick={() => {
+                                  navigator.clipboard.writeText(record.clockInLocation!);
+                                  toast.success('Koordinat disalin!');
+                                }}
+                                title={record.clockInLocation}
                               >
-                                <ExternalLink className="h-4 w-4 mr-1" />
-                                Maps
+                                <Copy className="h-4 w-4 mr-1" />
+                                {record.clockInLocation}
                               </Button>
                             ) : (
                               <span className="text-muted-foreground">-</span>
@@ -481,10 +486,14 @@ const Admin = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => window.open(`https://www.google.com/maps?q=${record.clockOutLocation}`, '_blank')}
+                                onClick={() => {
+                                  navigator.clipboard.writeText(record.clockOutLocation!);
+                                  toast.success('Koordinat disalin!');
+                                }}
+                                title={record.clockOutLocation}
                               >
-                                <ExternalLink className="h-4 w-4 mr-1" />
-                                Maps
+                                <Copy className="h-4 w-4 mr-1" />
+                                {record.clockOutLocation}
                               </Button>
                             ) : (
                               <span className="text-muted-foreground">-</span>
