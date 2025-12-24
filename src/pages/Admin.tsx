@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/layout/Header';
+import GoogleMapsLink from '@/components/GoogleMapsLink';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -455,16 +456,14 @@ const Admin = () => {
                           <TableCell>
                             {record.clockInLocation ? (
                               <div className="flex items-center gap-1">
-                                <a
-                                  href={`https://www.google.com/maps/search/?api=1&query=${record.clockInLocation}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                <GoogleMapsLink
+                                  query={record.clockInLocation}
                                   className="inline-flex items-center text-sm text-primary hover:underline"
                                   title="Buka di Google Maps"
                                 >
                                   <ExternalLink className="h-3 w-3 mr-1" />
                                   Maps
-                                </a>
+                                </GoogleMapsLink>
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -506,16 +505,14 @@ const Admin = () => {
                           <TableCell>
                             {record.clockOutLocation ? (
                               <div className="flex items-center gap-1">
-                                <a
-                                  href={`https://www.google.com/maps/search/?api=1&query=${record.clockOutLocation}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                <GoogleMapsLink
+                                  query={record.clockOutLocation}
                                   className="inline-flex items-center text-sm text-primary hover:underline"
                                   title="Buka di Google Maps"
                                 >
                                   <ExternalLink className="h-3 w-3 mr-1" />
                                   Maps
-                                </a>
+                                </GoogleMapsLink>
                                 <Button
                                   variant="ghost"
                                   size="sm"

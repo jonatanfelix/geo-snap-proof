@@ -9,6 +9,7 @@ import AttendanceButtons from '@/components/attendance/AttendanceButtons';
 import RecentHistory from '@/components/attendance/RecentHistory';
 import CameraCapture from '@/components/attendance/CameraCapture';
 import LocationMap from '@/components/attendance/LocationMap';
+import GoogleMapsLink from '@/components/GoogleMapsLink';
 import { getCurrentPosition, GeolocationError } from '@/lib/geolocation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin, RefreshCw, ExternalLink, AlertTriangle } from 'lucide-react';
@@ -602,15 +603,14 @@ const Dashboard = () => {
 
                 {currentPosition && (
                   <div className="flex flex-wrap gap-2">
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${currentPosition.latitude},${currentPosition.longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <GoogleMapsLink
+                      query={`${currentPosition.latitude},${currentPosition.longitude}`}
                       className="inline-flex items-center justify-center h-9 px-3 text-sm font-medium border-2 border-foreground bg-background hover:bg-accent hover:text-accent-foreground rounded-md"
+                      title="Buka di Google Maps"
                     >
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Buka di Google Maps
-                    </a>
+                    </GoogleMapsLink>
                     <Button
                       variant="outline"
                       size="sm"
