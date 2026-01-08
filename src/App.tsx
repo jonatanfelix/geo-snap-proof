@@ -18,6 +18,7 @@ import AdminAuditLogs from "./pages/AdminAuditLogs";
 import LeaveRequest from "./pages/LeaveRequest";
 import Profile from "./pages/Profile";
 import Clock from "./pages/Clock";
+import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,7 +53,7 @@ const App = () => (
                 path="/history"
                 element={
                   <ProtectedRoute>
-                    <Clock />
+                    <History />
                   </ProtectedRoute>
                 }
               />
