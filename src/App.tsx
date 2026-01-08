@@ -17,6 +17,7 @@ import AdminDailyMonitor from "./pages/AdminDailyMonitor";
 import AdminAuditLogs from "./pages/AdminAuditLogs";
 import LeaveRequest from "./pages/LeaveRequest";
 import Profile from "./pages/Profile";
+import Clock from "./pages/Clock";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Index />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/clock"
+                element={
+                  <ProtectedRoute>
+                    <Clock />
                   </ProtectedRoute>
                 }
               />
