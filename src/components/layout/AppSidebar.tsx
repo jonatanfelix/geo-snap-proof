@@ -1,4 +1,4 @@
-import { Clock, LayoutDashboard, History, CalendarDays, Users, Settings, LogOut, Shield, Calendar, FileText, LayoutGrid } from 'lucide-react';
+import { Clock, LayoutDashboard, History, CalendarDays, Users, Settings, LogOut, Shield, Calendar, FileText, LayoutGrid, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
@@ -14,6 +14,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -91,16 +92,28 @@ export function AppSidebar() {
     return null;
   };
 
+  const { state, toggleSidebar } = useSidebar();
+  const isCollapsed = state === 'collapsed';
+
   return (
-    <Sidebar className="border-r border-sidebar-border bg-sidebar">
-      {/* Header - Logo */}
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
+      {/* Header - Logo & Toggle */}
       <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <Link to="/" className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-sidebar-foreground">
-            <Clock className="h-5 w-5 text-sidebar-foreground" />
-          </div>
-          <span className="text-lg font-bold text-sidebar-foreground">GeoAttend</span>
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-sidebar-foreground shrink-0">
+              <Clock className="h-5 w-5 text-sidebar-foreground" />
+            </div>
+            {!isCollapsed && <span className="text-lg font-bold text-sidebar-foreground">GeoAttend</span>}
+          </Link>
+          <button
+            onClick={toggleSidebar}
+            className="hidden md:flex p-1.5 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-md transition-colors"
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          </button>
+        </div>
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-4">
@@ -113,6 +126,7 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
+                    tooltip={item.title}
                     className={cn(
                       'w-full justify-start gap-3 px-3 py-2.5 rounded-md transition-colors',
                       isActive(item.url)
@@ -121,8 +135,8 @@ export function AppSidebar() {
                     )}
                   >
                     <Link to={item.url}>
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
+                      <item.icon className="h-5 w-5 shrink-0" />
+                      {!isCollapsed && <span>{item.title}</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -134,9 +148,11 @@ export function AppSidebar() {
         {/* Admin Menu */}
         {isAdminOrDeveloper && (
           <SidebarGroup className="mt-4">
-            <SidebarGroupLabel className="px-3 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
-              Admin
-            </SidebarGroupLabel>
+            {!isCollapsed && (
+              <SidebarGroupLabel className="px-3 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+                Admin
+              </SidebarGroupLabel>
+            )}
             <SidebarGroupContent>
               <SidebarMenu>
                 {adminMenuItems.map((item) => (
@@ -144,6 +160,7 @@ export function AppSidebar() {
                     <SidebarMenuButton
                       asChild
                       isActive={isActive(item.url)}
+                      tooltip={item.title}
                       className={cn(
                         'w-full justify-start gap-3 px-3 py-2.5 rounded-md transition-colors',
                         isActive(item.url)
@@ -152,8 +169,8 @@ export function AppSidebar() {
                       )}
                     >
                       <Link to={item.url}>
-                        <item.icon className="h-5 w-5" />
-                        <span>{item.title}</span>
+                        <item.icon className="h-5 w-5 shrink-0" />
+                        {!isCollapsed && <span>{item.title}</span>}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -166,32 +183,44 @@ export function AppSidebar() {
 
       {/* Footer - User Profile */}
       <SidebarFooter className="p-4 border-t border-sidebar-border">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-9 w-9 border border-sidebar-border">
-              <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-sm font-medium">
-                {userInitials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-sidebar-foreground truncate max-w-[100px]">
-                  {profile?.full_name || 'User'}
-                </span>
-                {getRoleBadge()}
+        <div className={cn("flex items-center", isCollapsed ? "justify-center" : "justify-between")}>
+          {isCollapsed ? (
+            <button
+              onClick={signOut}
+              className="p-2 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-md transition-colors"
+              title="Sign Out"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
+          ) : (
+            <>
+              <div className="flex items-center gap-3">
+                <Avatar className="h-9 w-9 border border-sidebar-border shrink-0">
+                  <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-sm font-medium">
+                    {userInitials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-sidebar-foreground truncate max-w-[100px]">
+                      {profile?.full_name || 'User'}
+                    </span>
+                    {getRoleBadge()}
+                  </div>
+                  <span className="text-xs text-sidebar-foreground/50 truncate max-w-[140px]">
+                    {user?.email}
+                  </span>
+                </div>
               </div>
-              <span className="text-xs text-sidebar-foreground/50 truncate max-w-[140px]">
-                {user?.email}
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={signOut}
-            className="p-2 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-md transition-colors"
-            title="Sign Out"
-          >
-            <LogOut className="h-5 w-5" />
-          </button>
+              <button
+                onClick={signOut}
+                className="p-2 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-md transition-colors"
+                title="Sign Out"
+              >
+                <LogOut className="h-5 w-5" />
+              </button>
+            </>
+          )}
         </div>
       </SidebarFooter>
     </Sidebar>
