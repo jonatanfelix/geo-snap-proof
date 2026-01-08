@@ -23,8 +23,7 @@ import {
 } from 'lucide-react';
 import { format, parseISO, startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart as RechartsPie, Pie, Cell, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart as RechartsPie, Pie, Cell, Legend, Tooltip } from 'recharts';
 
 interface Employee {
   id: string;
@@ -519,7 +518,7 @@ const AdminAnalytics = () => {
                     <BarChart data={weeklyChartData}>
                       <XAxis dataKey="day" />
                       <YAxis />
-                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Tooltip />
                       <Bar dataKey="hadir" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
