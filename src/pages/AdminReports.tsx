@@ -50,7 +50,7 @@ interface Employee {
 interface AttendanceRecord {
   id: string;
   user_id: string;
-  record_type: string;
+  record_type: 'clock_in' | 'clock_out' | 'break_out' | 'break_in';
   recorded_at: string;
 }
 
@@ -85,12 +85,24 @@ interface EmployeeRecap {
   weekendDays: number;
 }
 
+interface DailyDetail {
+  employee: Employee;
+  date: string;
+  clockIn: string | null;
+  breakOut: string | null;
+  breakIn: string | null;
+  clockOut: string | null;
+  lateMinutes: number;
+  status: 'present' | 'absent' | 'leave' | 'holiday' | 'weekend';
+  leaveType?: string;
+}
 const AdminReports = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [reportType, setReportType] = useState<'monthly' | 'daily'>('monthly');
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
   const [isExporting, setIsExporting] = useState(false);
 
   // Check if user is admin
@@ -335,6 +347,117 @@ const AdminReports = () => {
     });
   }, [employees, dateRange, attendance, leaves, holidays, company?.work_start_time]);
 
+  // Process daily detail data
+  const dailyDetailData = useMemo<DailyDetail[]>(() => {
+    if (!employees || !dateRange || reportType !== 'daily') return [];
+
+    const holidayDates = new Set(holidays?.map(h => h.date) || []);
+    const result: DailyDetail[] = [];
+
+    const filteredEmployees = selectedEmployee === 'all' 
+      ? employees 
+      : employees.filter(e => e.user_id === selectedEmployee);
+
+    filteredEmployees.forEach((emp) => {
+      const workStartTime = emp.shifts?.start_time || company?.work_start_time || '08:00:00';
+      const [startHour, startMin] = workStartTime.split(':').map(Number);
+
+      dateRange.days.forEach((day) => {
+        const dateStr = format(day, 'yyyy-MM-dd');
+
+        // Skip future dates
+        if (day > new Date()) return;
+
+        // Check weekend
+        if (isWeekend(day)) {
+          result.push({
+            employee: emp,
+            date: dateStr,
+            clockIn: null,
+            breakOut: null,
+            breakIn: null,
+            clockOut: null,
+            lateMinutes: 0,
+            status: 'weekend',
+          });
+          return;
+        }
+
+        // Check holiday
+        if (holidayDates.has(dateStr)) {
+          result.push({
+            employee: emp,
+            date: dateStr,
+            clockIn: null,
+            breakOut: null,
+            breakIn: null,
+            clockOut: null,
+            lateMinutes: 0,
+            status: 'holiday',
+          });
+          return;
+        }
+
+        // Check leave
+        const empLeave = leaves?.find(
+          (l) => l.user_id === emp.user_id && dateStr >= l.start_date && dateStr <= l.end_date
+        );
+        if (empLeave) {
+          result.push({
+            employee: emp,
+            date: dateStr,
+            clockIn: null,
+            breakOut: null,
+            breakIn: null,
+            clockOut: null,
+            lateMinutes: 0,
+            status: 'leave',
+            leaveType: empLeave.leave_type,
+          });
+          return;
+        }
+
+        // Get attendance records for this day
+        const dayAttendance = attendance?.filter(
+          (a) => a.user_id === emp.user_id && a.recorded_at.startsWith(dateStr)
+        ) || [];
+
+        const clockIn = dayAttendance.find(a => a.record_type === 'clock_in');
+        const breakOut = dayAttendance.find(a => a.record_type === 'break_out');
+        const breakIn = dayAttendance.find(a => a.record_type === 'break_in');
+        const clockOut = dayAttendance.find(a => a.record_type === 'clock_out');
+
+        let lateMinutes = 0;
+        if (clockIn && emp.employee_type === 'office') {
+          const clockInTime = new Date(clockIn.recorded_at);
+          const workStart = new Date(clockInTime);
+          workStart.setHours(startHour, startMin, 0, 0);
+          if (clockInTime > workStart) {
+            lateMinutes = differenceInMinutes(clockInTime, workStart);
+          }
+        }
+
+        result.push({
+          employee: emp,
+          date: dateStr,
+          clockIn: clockIn ? format(new Date(clockIn.recorded_at), 'HH:mm') : null,
+          breakOut: breakOut ? format(new Date(breakOut.recorded_at), 'HH:mm') : null,
+          breakIn: breakIn ? format(new Date(breakIn.recorded_at), 'HH:mm') : null,
+          clockOut: clockOut ? format(new Date(clockOut.recorded_at), 'HH:mm') : null,
+          lateMinutes,
+          status: clockIn ? 'present' : 'absent',
+        });
+      });
+    });
+
+    return result.sort((a, b) => {
+      // Sort by date descending, then by name
+      const dateCompare = b.date.localeCompare(a.date);
+      if (dateCompare !== 0) return dateCompare;
+      return a.employee.full_name.localeCompare(b.employee.full_name);
+    });
+  }, [employees, dateRange, attendance, leaves, holidays, company?.work_start_time, reportType, selectedEmployee]);
+
   // Summary stats
   const summaryStats = useMemo(() => {
     if (!recapData.length) return null;
@@ -490,7 +613,19 @@ const AdminReports = () => {
               <CardTitle className="text-lg">Filter Periode</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
+                <div className="space-y-2">
+                  <Label>Tipe Laporan</Label>
+                  <Select value={reportType} onValueChange={(v: 'monthly' | 'daily') => setReportType(v)}>
+                    <SelectTrigger className="w-full sm:w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="monthly">Rekap Bulanan</SelectItem>
+                      <SelectItem value="daily">Detail Harian</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2">
                   <Label>Bulan</Label>
                   <Input
@@ -500,12 +635,30 @@ const AdminReports = () => {
                     className="w-full sm:w-48"
                   />
                 </div>
+                {reportType === 'daily' && (
+                  <div className="space-y-2">
+                    <Label>Karyawan</Label>
+                    <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                      <SelectTrigger className="w-full sm:w-56">
+                        <SelectValue placeholder="Pilih karyawan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Semua Karyawan</SelectItem>
+                        {employees?.map((emp) => (
+                          <SelectItem key={emp.user_id} value={emp.user_id}>
+                            {emp.full_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Summary Stats */}
-          {summaryStats && (
+          {/* Summary Stats - Only show for monthly */}
+          {reportType === 'monthly' && summaryStats && (
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
               <Card>
                 <CardContent className="pt-4">
@@ -565,90 +718,175 @@ const AdminReports = () => {
             </div>
           )}
 
-          {/* Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">
-                Rekap {format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: idLocale })}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : !recapData.length ? (
-                <p className="text-center py-8 text-muted-foreground">Tidak ada data</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nama</TableHead>
-                        <TableHead>Departemen</TableHead>
-                        <TableHead className="text-center">Hadir</TableHead>
-                        <TableHead className="text-center">Telat</TableHead>
-                        <TableHead className="text-center">Pulang Cepat</TableHead>
-                        <TableHead className="text-center">Alpa</TableHead>
-                        <TableHead className="text-center">Cuti/Izin/Sakit</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recapData.map((r) => (
-                        <TableRow key={r.employee.id}>
-                          <TableCell className="font-medium">
-                            {r.employee.full_name}
-                            <Badge variant="outline" className="ml-2 text-xs">
-                              {r.employee.employee_type === 'office' ? 'Kantor' : 'Lapangan'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{r.employee.department || '-'}</TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="default">{r.presentDays}</Badge>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {r.lateDays > 0 ? (
-                              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                                {r.lateDays} ({r.totalLateMinutes}m)
+          {/* Monthly Recap Table */}
+          {reportType === 'monthly' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  Rekap {format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: idLocale })}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : !recapData.length ? (
+                  <p className="text-center py-8 text-muted-foreground">Tidak ada data</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nama</TableHead>
+                          <TableHead>Departemen</TableHead>
+                          <TableHead className="text-center">Hadir</TableHead>
+                          <TableHead className="text-center">Telat</TableHead>
+                          <TableHead className="text-center">Pulang Cepat</TableHead>
+                          <TableHead className="text-center">Alpa</TableHead>
+                          <TableHead className="text-center">Cuti/Izin/Sakit</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {recapData.map((r) => (
+                          <TableRow key={r.employee.id}>
+                            <TableCell className="font-medium">
+                              {r.employee.full_name}
+                              <Badge variant="outline" className="ml-2 text-xs">
+                                {r.employee.employee_type === 'office' ? 'Kantor' : 'Lapangan'}
                               </Badge>
-                            ) : (
-                              <span className="text-muted-foreground">0</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {r.earlyLeaveDays > 0 ? (
-                              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                                {r.earlyLeaveDays}
-                              </Badge>
-                            ) : (
-                              <span className="text-muted-foreground">0</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {r.absentDays > 0 ? (
-                              <Badge variant="destructive">{r.absentDays}</Badge>
-                            ) : (
-                              <span className="text-muted-foreground">0</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex gap-1 justify-center">
-                              {r.leaveDays > 0 && <Badge variant="outline">C:{r.leaveDays}</Badge>}
-                              {r.permitDays > 0 && <Badge variant="outline">I:{r.permitDays}</Badge>}
-                              {r.sickDays > 0 && <Badge variant="outline">S:{r.sickDays}</Badge>}
-                              {r.leaveDays + r.permitDays + r.sickDays === 0 && (
+                            </TableCell>
+                            <TableCell>{r.employee.department || '-'}</TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="default">{r.presentDays}</Badge>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {r.lateDays > 0 ? (
+                                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                                  {r.lateDays} ({r.totalLateMinutes}m)
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground">0</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {r.earlyLeaveDays > 0 ? (
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                                  {r.earlyLeaveDays}
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground">0</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {r.absentDays > 0 ? (
+                                <Badge variant="destructive">{r.absentDays}</Badge>
+                              ) : (
+                                <span className="text-muted-foreground">0</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex gap-1 justify-center">
+                                {r.leaveDays > 0 && <Badge variant="outline">C:{r.leaveDays}</Badge>}
+                                {r.permitDays > 0 && <Badge variant="outline">I:{r.permitDays}</Badge>}
+                                {r.sickDays > 0 && <Badge variant="outline">S:{r.sickDays}</Badge>}
+                                {r.leaveDays + r.permitDays + r.sickDays === 0 && (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Daily Detail Table */}
+          {reportType === 'daily' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  Detail Harian - {format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: idLocale })}
+                </CardTitle>
+                <CardDescription>
+                  Jam Masuk, Istirahat Keluar, Istirahat Masuk, Jam Pulang
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : !dailyDetailData.length ? (
+                  <p className="text-center py-8 text-muted-foreground">Tidak ada data</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Tanggal</TableHead>
+                          <TableHead>Nama</TableHead>
+                          <TableHead className="text-center">Jam Masuk</TableHead>
+                          <TableHead className="text-center">Istirahat Keluar</TableHead>
+                          <TableHead className="text-center">Istirahat Masuk</TableHead>
+                          <TableHead className="text-center">Jam Pulang</TableHead>
+                          <TableHead className="text-center">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {dailyDetailData.map((d, idx) => (
+                          <TableRow key={`${d.employee.id}-${d.date}-${idx}`}>
+                            <TableCell className="font-medium whitespace-nowrap">
+                              {format(parseISO(d.date), 'EEE, dd MMM', { locale: idLocale })}
+                            </TableCell>
+                            <TableCell>{d.employee.full_name}</TableCell>
+                            <TableCell className="text-center">
+                              {d.clockIn ? (
+                                <div className="flex flex-col items-center">
+                                  <span className="font-mono">{d.clockIn}</span>
+                                  {d.lateMinutes > 0 && (
+                                    <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800">
+                                      +{d.lateMinutes}m
+                                    </Badge>
+                                  )}
+                                </div>
+                              ) : (
                                 <span className="text-muted-foreground">-</span>
                               )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                            </TableCell>
+                            <TableCell className="text-center font-mono">
+                              {d.breakOut || <span className="text-muted-foreground">-</span>}
+                            </TableCell>
+                            <TableCell className="text-center font-mono">
+                              {d.breakIn || <span className="text-muted-foreground">-</span>}
+                            </TableCell>
+                            <TableCell className="text-center font-mono">
+                              {d.clockOut || <span className="text-muted-foreground">-</span>}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {d.status === 'present' && <Badge variant="default">Hadir</Badge>}
+                              {d.status === 'absent' && <Badge variant="destructive">Alpa</Badge>}
+                              {d.status === 'leave' && (
+                                <Badge variant="outline">
+                                  {d.leaveType === 'sakit' ? 'Sakit' : d.leaveType === 'izin' ? 'Izin' : 'Cuti'}
+                                </Badge>
+                              )}
+                              {d.status === 'holiday' && <Badge variant="secondary">Libur</Badge>}
+                              {d.status === 'weekend' && <Badge variant="secondary">Weekend</Badge>}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </AppLayout>
