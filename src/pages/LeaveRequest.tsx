@@ -44,6 +44,8 @@ interface LeaveRequest {
   created_at: string;
 }
 
+const MAX_REASON_LENGTH = 500;
+
 const LeaveRequest = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -96,6 +98,10 @@ const LeaveRequest = () => {
   };
 
   const clearProofFile = () => {
+    // Revoke object URL to prevent memory leak
+    if (proofPreview) {
+      URL.revokeObjectURL(proofPreview);
+    }
     setProofFile(null);
     setProofPreview(null);
     if (fileInputRef.current) {
@@ -154,12 +160,15 @@ const LeaveRequest = () => {
         }
       }
 
+      // Sanitize reason - trim and limit length
+      const sanitizedReason = reason.trim().slice(0, MAX_REASON_LENGTH) || null;
+
       const { error } = await supabase.from('leave_requests').insert({
         user_id: user.id,
         leave_type: leaveType,
         start_date: startDate,
         end_date: endDate,
-        reason: reason || null,
+        reason: sanitizedReason,
         proof_url: proofUrl,
       });
 
@@ -270,11 +279,15 @@ const LeaveRequest = () => {
                   <Textarea
                     id="reason"
                     value={reason}
-                    onChange={(e) => setReason(e.target.value)}
+                    onChange={(e) => setReason(e.target.value.slice(0, MAX_REASON_LENGTH))}
                     placeholder="Jelaskan alasan pengajuan..."
                     className="border-2 border-foreground"
                     rows={3}
+                    maxLength={MAX_REASON_LENGTH}
                   />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {reason.length}/{MAX_REASON_LENGTH}
+                  </p>
                 </div>
                 
                 {/* Photo Upload */}

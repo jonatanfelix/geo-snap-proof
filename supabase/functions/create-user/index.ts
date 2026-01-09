@@ -100,8 +100,37 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Input validation
+    const trimmedFullName = String(fullName).trim();
+    const trimmedPassword = String(password);
+    
+    // Validate fullName
+    if (trimmedFullName.length < 2 || trimmedFullName.length > 100) {
+      return new Response(
+        JSON.stringify({ error: 'Nama harus antara 2-100 karakter' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Validate fullName format (only letters, spaces, and common name characters)
+    const nameRegex = /^[a-zA-Z\s'.,-]+$/;
+    if (!nameRegex.test(trimmedFullName)) {
+      return new Response(
+        JSON.stringify({ error: 'Nama hanya boleh mengandung huruf dan spasi' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Validate password
+    if (trimmedPassword.length < 6 || trimmedPassword.length > 72) {
+      return new Response(
+        JSON.stringify({ error: 'Password harus antara 6-72 karakter' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Generate username from fullName (lowercase, replace spaces with dots)
-    const baseUsername = fullName.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
+    const baseUsername = trimmedFullName.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
     
     // Check if username already exists and add number if needed
     let username = baseUsername;
@@ -150,10 +179,10 @@ Deno.serve(async (req) => {
     // Create user using admin API
     const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
-      password,
+      password: trimmedPassword,
       email_confirm: true,
       user_metadata: {
-        full_name: fullName,
+        full_name: trimmedFullName,
       },
     });
 

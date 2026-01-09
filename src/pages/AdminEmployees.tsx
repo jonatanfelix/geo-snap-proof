@@ -43,6 +43,13 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
+// Input validation constants
+const MAX_NAME_LENGTH = 100;
+const MAX_JOB_TITLE_LENGTH = 100;
+const MAX_DEPARTMENT_LENGTH = 100;
+const MIN_PASSWORD_LENGTH = 6;
+const MAX_PASSWORD_LENGTH = 72;
+
 interface Shift {
   id: string;
   name: string;
@@ -236,13 +243,35 @@ const AdminEmployees = () => {
 
   // Create user handler
   const handleCreateUser = async () => {
-    if (!newPassword || !newFullName) {
+    const trimmedName = newFullName.trim();
+    const trimmedJobTitle = newJobTitle.trim();
+    const trimmedDepartment = newDepartment.trim();
+
+    if (!newPassword || !trimmedName) {
       toast.error('Nama dan Password harus diisi');
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast.error('Password minimal 6 karakter');
+    // Validate name
+    if (trimmedName.length < 2 || trimmedName.length > MAX_NAME_LENGTH) {
+      toast.error(`Nama harus antara 2-${MAX_NAME_LENGTH} karakter`);
+      return;
+    }
+
+    // Validate password
+    if (newPassword.length < MIN_PASSWORD_LENGTH || newPassword.length > MAX_PASSWORD_LENGTH) {
+      toast.error(`Password harus antara ${MIN_PASSWORD_LENGTH}-${MAX_PASSWORD_LENGTH} karakter`);
+      return;
+    }
+
+    // Validate optional fields
+    if (trimmedJobTitle.length > MAX_JOB_TITLE_LENGTH) {
+      toast.error(`Jabatan maksimal ${MAX_JOB_TITLE_LENGTH} karakter`);
+      return;
+    }
+
+    if (trimmedDepartment.length > MAX_DEPARTMENT_LENGTH) {
+      toast.error(`Departemen maksimal ${MAX_DEPARTMENT_LENGTH} karakter`);
       return;
     }
 
@@ -251,7 +280,7 @@ const AdminEmployees = () => {
       const { data, error } = await supabase.functions.invoke('create-user', {
         body: {
           password: newPassword,
-          fullName: newFullName,
+          fullName: trimmedName,
           role: newRole,
         },
       });
@@ -261,10 +290,10 @@ const AdminEmployees = () => {
 
       // Update additional fields if provided (with retry to handle race condition)
       const shiftIdToSave = newShiftId === 'none' ? null : newShiftId || null;
-      if (newJobTitle || newDepartment || shiftIdToSave) {
+      if (trimmedJobTitle || trimmedDepartment || shiftIdToSave) {
         const updateSuccess = await updateProfileWithRetry(data.user.id, {
-          job_title: newJobTitle || null,
-          department: newDepartment || null,
+          job_title: trimmedJobTitle || null,
+          department: trimmedDepartment || null,
           shift_id: shiftIdToSave,
         });
 
