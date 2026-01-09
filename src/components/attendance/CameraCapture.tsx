@@ -37,6 +37,11 @@ const getFaceDetector = async () => {
   return faceDetectorPromise;
 };
 
+// Export preload function for external use
+export const preloadFaceDetector = () => {
+  return getFaceDetector();
+};
+
 const CameraCapture = ({
   isOpen,
   onClose,
@@ -97,13 +102,13 @@ const CameraCapture = ({
       console.log('Detection results:', results);
 
       // Check if any person detected with sufficient size
-      // Person must occupy at least 15% of the frame to be considered valid
-      // This prevents photos on walls or small objects from being detected
-      const minAreaRatio = 0.15;
+      // Person must occupy at least 5% of the frame to be considered valid
+      // Lower threshold to allow partial faces/bodies
+      const minAreaRatio = 0.05;
       const frameArea = canvas.width * canvas.height;
       
       const validPersonDetected = results.some((result: any) => {
-        if (result.label !== 'person' || result.score < 0.6) return false;
+        if (result.label !== 'person' || result.score < 0.5) return false;
         
         // Calculate bounding box area
         const box = result.box;

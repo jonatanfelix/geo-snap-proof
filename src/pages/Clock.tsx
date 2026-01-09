@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AppLayout } from '@/components/layout/AppLayout';
 import StatusCard from '@/components/attendance/StatusCard';
 import AttendanceButtons from '@/components/attendance/AttendanceButtons';
-import CameraCapture from '@/components/attendance/CameraCapture';
+import CameraCapture, { preloadFaceDetector } from '@/components/attendance/CameraCapture';
 import LocationMap from '@/components/attendance/LocationMap';
 import GoogleMapsLink from '@/components/GoogleMapsLink';
 import { getCurrentPosition, GeolocationError } from '@/lib/geolocation';
@@ -238,6 +238,14 @@ const Clock = () => {
     } finally {
       setLocationLoading(false);
     }
+  }, []);
+
+  // Pre-load face detection model when Clock page loads
+  useEffect(() => {
+    console.log('Pre-loading face detection model...');
+    preloadFaceDetector()
+      .then(() => console.log('Face detection model pre-loaded successfully'))
+      .catch((err) => console.error('Failed to pre-load face detection model:', err));
   }, []);
 
   useEffect(() => {
