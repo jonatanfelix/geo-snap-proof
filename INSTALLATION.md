@@ -959,6 +959,418 @@ Jika masih ada masalah, verifikasi checklist ini:
 
 ---
 
+## 📊 Monitoring & Maintenance Production
+
+### Monitoring Aplikasi
+
+#### 1. Health Check Endpoint
+
+Tambahkan monitoring sederhana dengan cek status berkala:
+
+```bash
+# Cek apakah aplikasi berjalan
+curl -I https://yourdomain.com
+
+# Expected: HTTP/2 200
+```
+
+#### 2. Uptime Monitoring (Gratis)
+
+Gunakan layanan monitoring gratis:
+
+| Layanan | Fitur | Link |
+|---------|-------|------|
+| **UptimeRobot** | 50 monitors gratis, 5 min interval | [uptimerobot.com](https://uptimerobot.com) |
+| **Better Uptime** | 10 monitors gratis, incident management | [betteruptime.com](https://betteruptime.com) |
+| **Freshping** | 50 monitors gratis, multi-location | [freshping.io](https://freshping.io) |
+
+**Setup UptimeRobot:**
+1. Daftar di uptimerobot.com
+2. Add New Monitor → HTTP(s)
+3. URL: `https://yourdomain.com`
+4. Monitoring Interval: 5 minutes
+5. Alert Contacts: email/Telegram/Slack
+
+#### 3. Server Monitoring
+
+```bash
+# Install htop untuk monitoring real-time
+sudo apt install htop
+
+# Cek resource usage
+htop
+
+# Cek disk usage
+df -h
+
+# Cek memory
+free -m
+
+# Cek logs Nginx
+sudo tail -f /var/log/nginx/access.log
+sudo tail -f /var/log/nginx/error.log
+```
+
+#### 4. Database Monitoring (Supabase)
+
+Monitoring via Supabase Dashboard:
+
+| Metrik | Lokasi | Threshold Alert |
+|--------|--------|-----------------|
+| **Database Size** | Settings → Database | >70% storage |
+| **Connection Count** | Reports → Database | >80 connections |
+| **API Requests** | Reports → API | >100k/day (free tier) |
+| **Auth Users** | Authentication | Monitor growth |
+| **Storage Usage** | Storage | >70% quota |
+
+**Query untuk cek database health:**
+
+```sql
+-- Cek ukuran tabel
+SELECT 
+  schemaname,
+  tablename,
+  pg_size_pretty(pg_total_relation_size(schemaname || '.' || tablename)) as size
+FROM pg_tables
+WHERE schemaname = 'public'
+ORDER BY pg_total_relation_size(schemaname || '.' || tablename) DESC;
+
+-- Cek jumlah records per tabel
+SELECT 'profiles' as table_name, count(*) FROM profiles
+UNION ALL SELECT 'attendance_records', count(*) FROM attendance_records
+UNION ALL SELECT 'leave_requests', count(*) FROM leave_requests
+UNION ALL SELECT 'audit_logs', count(*) FROM audit_logs;
+
+-- Cek index yang tidak terpakai
+SELECT 
+  schemaname || '.' || relname as table,
+  indexrelname as index,
+  idx_scan as times_used
+FROM pg_stat_user_indexes
+WHERE idx_scan = 0
+ORDER BY pg_relation_size(indexrelid) DESC;
+```
+
+---
+
+### Maintenance Berkala
+
+#### Daily Maintenance
+
+```bash
+# Cek status Nginx
+sudo systemctl status nginx
+
+# Cek disk space
+df -h /var/www/geoattend
+
+# Cek error logs
+sudo tail -100 /var/log/nginx/error.log | grep -i error
+```
+
+#### Weekly Maintenance
+
+```bash
+# Update sistem (non-breaking)
+sudo apt update
+sudo apt list --upgradable
+
+# Rotate logs jika perlu
+sudo logrotate -f /etc/logrotate.conf
+
+# Backup konfigurasi Nginx
+sudo cp /etc/nginx/sites-available/geoattend /etc/nginx/sites-available/geoattend.bak
+```
+
+#### Monthly Maintenance
+
+```bash
+# Full system update
+sudo apt update && sudo apt upgrade -y
+
+# Cleanup unused packages
+sudo apt autoremove -y
+
+# Check SSL certificate expiry
+sudo certbot certificates
+
+# Renew SSL if needed
+sudo certbot renew
+
+# Check npm outdated packages
+cd /var/www/geoattend
+npm outdated
+```
+
+---
+
+### Backup Strategy
+
+#### 1. Database Backup (Supabase)
+
+**Automatic Backup** (Pro Plan):
+- Supabase Pro: Daily automatic backups, 7-day retention
+- Point-in-time recovery tersedia
+
+**Manual Backup** (Semua Plan):
+
+```bash
+# Export via Supabase CLI
+supabase db dump -f backup_$(date +%Y%m%d).sql
+
+# Atau via pg_dump (perlu connection string)
+pg_dump "postgresql://postgres:[PASSWORD]@db.[PROJECT_ID].supabase.co:5432/postgres" > backup.sql
+```
+
+**Backup Schedule Recommendation:**
+
+| Data | Frequency | Retention |
+|------|-----------|-----------|
+| Full Database | Daily | 30 hari |
+| Attendance Records | Weekly archive | 1 tahun |
+| Audit Logs | Monthly archive | 2 tahun |
+| User Data | Daily | 30 hari |
+
+#### 2. Application Backup
+
+```bash
+# Backup source code (jika tidak di Git)
+tar -czf geoattend_backup_$(date +%Y%m%d).tar.gz /var/www/geoattend
+
+# Backup .env file (PENTING - simpan di tempat aman!)
+cp /var/www/geoattend/.env ~/backups/env_$(date +%Y%m%d).bak
+```
+
+#### 3. Storage Backup (Supabase Storage)
+
+```bash
+# Download semua file dari bucket (via Supabase CLI)
+supabase storage download attendance-photos --output ./backup/attendance-photos
+supabase storage download avatars --output ./backup/avatars
+supabase storage download leave-proofs --output ./backup/leave-proofs
+```
+
+---
+
+### Log Management
+
+#### 1. Application Logs
+
+Nginx access/error logs lokasi:
+- Access: `/var/log/nginx/access.log`
+- Error: `/var/log/nginx/error.log`
+
+#### 2. Log Rotation
+
+Buat config log rotation:
+
+```bash
+sudo nano /etc/logrotate.d/geoattend
+```
+
+```
+/var/log/nginx/geoattend*.log {
+    daily
+    missingok
+    rotate 30
+    compress
+    delaycompress
+    notifempty
+    create 0640 www-data adm
+    sharedscripts
+    postrotate
+        [ -f /var/run/nginx.pid ] && kill -USR1 `cat /var/run/nginx.pid`
+    endscript
+}
+```
+
+#### 3. Audit Log Cleanup (Database)
+
+```sql
+-- Hapus audit logs lebih dari 1 tahun
+DELETE FROM audit_logs 
+WHERE created_at < NOW() - INTERVAL '1 year';
+
+-- Archive sebelum hapus (opsional)
+CREATE TABLE audit_logs_archive AS
+SELECT * FROM audit_logs 
+WHERE created_at < NOW() - INTERVAL '1 year';
+```
+
+---
+
+### Performance Optimization
+
+#### 1. Database Optimization
+
+```sql
+-- Reindex tables (jalankan saat traffic rendah)
+REINDEX TABLE attendance_records;
+REINDEX TABLE profiles;
+REINDEX TABLE audit_logs;
+
+-- Vacuum untuk reclaim space
+VACUUM ANALYZE attendance_records;
+VACUUM ANALYZE profiles;
+
+-- Check slow queries (via Supabase Dashboard → Logs → Postgres)
+```
+
+#### 2. Nginx Optimization
+
+```nginx
+# Tambahkan di nginx.conf untuk performance
+worker_processes auto;
+worker_connections 1024;
+
+# Enable caching
+proxy_cache_path /tmp/nginx_cache levels=1:2 keys_zone=my_cache:10m max_size=100m inactive=60m;
+
+# Compression
+gzip on;
+gzip_vary on;
+gzip_min_length 1024;
+gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
+```
+
+#### 3. CDN (Optional)
+
+Untuk static assets, gunakan CDN gratis:
+
+| CDN | Fitur | Link |
+|-----|-------|------|
+| **Cloudflare** | Free tier, DDoS protection | [cloudflare.com](https://cloudflare.com) |
+| **BunnyCDN** | Pay-as-you-go, murah | [bunny.net](https://bunny.net) |
+
+---
+
+### Security Maintenance
+
+#### 1. Regular Security Checks
+
+```bash
+# Cek listening ports
+sudo netstat -tlnp
+
+# Cek failed login attempts
+sudo grep "Failed password" /var/log/auth.log | tail -20
+
+# Cek firewall status
+sudo ufw status verbose
+```
+
+#### 2. Update Dependencies
+
+```bash
+cd /var/www/geoattend
+
+# Check security vulnerabilities
+npm audit
+
+# Fix vulnerabilities
+npm audit fix
+
+# Update packages (hati-hati dengan breaking changes)
+npm update
+```
+
+#### 3. SSL Certificate Check
+
+```bash
+# Cek expiry date
+echo | openssl s_client -servername yourdomain.com -connect yourdomain.com:443 2>/dev/null | openssl x509 -noout -dates
+
+# Auto-renew test
+sudo certbot renew --dry-run
+```
+
+---
+
+### Incident Response
+
+#### 1. Common Issues & Quick Fixes
+
+| Issue | Command | Action |
+|-------|---------|--------|
+| App down | `sudo systemctl restart nginx` | Restart Nginx |
+| 502 Error | `sudo nginx -t && sudo systemctl reload nginx` | Test & reload config |
+| Disk full | `df -h && sudo apt autoremove` | Free disk space |
+| High CPU | `htop` | Identify process |
+| SSL expired | `sudo certbot renew` | Renew certificate |
+
+#### 2. Rollback Procedure
+
+```bash
+# Jika deployment gagal, rollback ke versi sebelumnya
+cd /var/www/geoattend
+
+# Lihat commit history
+git log --oneline -10
+
+# Rollback ke commit sebelumnya
+git checkout [COMMIT_HASH]
+
+# Rebuild
+npm install
+npm run build
+
+# Jika perlu rollback database (HATI-HATI!)
+# Restore dari backup terakhir
+```
+
+#### 3. Emergency Contacts Template
+
+Buat file `/var/www/geoattend/EMERGENCY.md`:
+
+```markdown
+# Emergency Contacts
+
+## Server Issues
+- VPS Provider Support: [support ticket URL]
+- Server Admin: [nama] - [phone/email]
+
+## Database Issues
+- Supabase Support: support@supabase.io
+- DB Admin: [nama] - [phone/email]
+
+## Application Issues
+- Lead Developer: [nama] - [phone/email]
+- Backup Developer: [nama] - [phone/email]
+
+## Escalation Path
+1. Check monitoring alerts
+2. Try quick fixes (restart services)
+3. Check logs for errors
+4. Contact on-call developer
+5. If critical, contact server admin
+```
+
+---
+
+### Monitoring Checklist
+
+#### Daily Checks (5 menit)
+- [ ] Uptime monitoring green ✅
+- [ ] No error alerts
+- [ ] Users can login
+- [ ] Attendance recording works
+
+#### Weekly Checks (15 menit)
+- [ ] Server resources < 70%
+- [ ] Database size normal
+- [ ] No security alerts
+- [ ] Logs reviewed
+
+#### Monthly Checks (1 jam)
+- [ ] SSL certificate valid
+- [ ] System updates applied
+- [ ] Dependencies updated
+- [ ] Backup verified
+- [ ] Performance metrics reviewed
+- [ ] Storage cleanup done
+
+---
+
 ## 📞 Support
 
 Jika mengalami masalah, silakan:
