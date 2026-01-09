@@ -180,17 +180,30 @@ Deno.serve(async (req) => {
     }
 
     // SECURITY CHECK 4: Check for duplicate clock-in/out today
-    const todayStart = new Date()
-    todayStart.setHours(0, 0, 0, 0)
-    const todayEnd = new Date()
-    todayEnd.setHours(23, 59, 59, 999)
+    // Use Indonesia timezone (WIB = UTC+7) for date boundary
+    const now = new Date()
+    const wibOffset = 7 * 60 // WIB is UTC+7, offset in minutes
+    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000)
+    const wibTime = new Date(utcTime + (wibOffset * 60000))
+    
+    // Calculate today start/end in WIB then convert to UTC for query
+    const todayStartWIB = new Date(wibTime)
+    todayStartWIB.setHours(0, 0, 0, 0)
+    const todayEndWIB = new Date(wibTime)
+    todayEndWIB.setHours(23, 59, 59, 999)
+    
+    // Convert back to UTC for database query
+    const todayStartUTC = new Date(todayStartWIB.getTime() - (wibOffset * 60000))
+    const todayEndUTC = new Date(todayEndWIB.getTime() - (wibOffset * 60000))
+
+    console.log(`Date check: WIB date=${wibTime.toISOString()}, query range: ${todayStartUTC.toISOString()} to ${todayEndUTC.toISOString()}`)
 
     const { data: existingRecords, error: existingError } = await supabaseAdmin
       .from('attendance_records')
       .select('id, record_type, recorded_at')
       .eq('user_id', user.id)
-      .gte('recorded_at', todayStart.toISOString())
-      .lte('recorded_at', todayEnd.toISOString())
+      .gte('recorded_at', todayStartUTC.toISOString())
+      .lte('recorded_at', todayEndUTC.toISOString())
       .order('recorded_at', { ascending: false })
 
     if (existingError) {

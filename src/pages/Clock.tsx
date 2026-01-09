@@ -29,6 +29,7 @@ interface ShiftData {
   name: string;
   start_time: string;
   end_time: string;
+  working_days: number[];
 }
 
 interface ProfileData {
@@ -79,7 +80,7 @@ const Clock = () => {
           company_id, 
           employee_type, 
           shift_id,
-          shift:shifts(id, name, start_time, end_time)
+          shift:shifts(id, name, start_time, end_time, working_days)
         `)
         .eq('user_id', user.id)
         .maybeSingle();
@@ -181,8 +182,31 @@ const Clock = () => {
     });
   }, [recentRecords, todayDateString]);
 
-  const lastClockIn = recentRecords?.find((r) => r.record_type === 'clock_in');
-  const lastClockOut = recentRecords?.find((r) => r.record_type === 'clock_out');
+  // Get today's last clock in/out specifically
+  const todayLastClockIn = useMemo(() => {
+    if (!recentRecords) return null;
+    return recentRecords.find((r) => {
+      const recordDate = new Date(r.recorded_at);
+      recordDate.setHours(0, 0, 0, 0);
+      return recordDate.getTime() === todayDateString && r.record_type === 'clock_in';
+    });
+  }, [recentRecords, todayDateString]);
+
+  const todayLastClockOut = useMemo(() => {
+    if (!recentRecords) return null;
+    return recentRecords.find((r) => {
+      const recordDate = new Date(r.recorded_at);
+      recordDate.setHours(0, 0, 0, 0);
+      return recordDate.getTime() === todayDateString && r.record_type === 'clock_out';
+    });
+  }, [recentRecords, todayDateString]);
+
+  // Check if today is a working day for this user's shift
+  const isTodayWorkingDay = useMemo(() => {
+    if (!profile?.shift?.working_days) return true; // No shift = allow
+    const todayDayOfWeek = new Date().getDay();
+    return profile.shift.working_days.includes(todayDayOfWeek);
+  }, [profile?.shift?.working_days]);
 
   const effectiveWorkStartTime = useMemo(() => {
     if (profile?.shift?.start_time) return profile.shift.start_time;
@@ -351,6 +375,16 @@ const Clock = () => {
       return;
     }
 
+    // Check working days for clock_in only
+    if (recordType === 'clock_in' && !isTodayWorkingDay) {
+      toast({
+        title: 'Hari Libur Shift',
+        description: `Hari ini bukan hari kerja untuk shift ${profile?.shift?.name || 'Anda'}.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (profile?.requires_geofence && company?.office_latitude && company?.office_longitude) {
       const distance = calculateDistance(
         currentPosition.latitude,
@@ -446,8 +480,8 @@ const Clock = () => {
           {/* Status Card */}
           <StatusCard
             status={status}
-            lastClockIn={lastClockIn ? new Date(lastClockIn.recorded_at) : null}
-            lastClockOut={lastClockOut ? new Date(lastClockOut.recorded_at) : null}
+            lastClockIn={todayLastClockIn ? new Date(todayLastClockIn.recorded_at) : null}
+            lastClockOut={todayLastClockOut ? new Date(todayLastClockOut.recorded_at) : null}
             isLate={isLate}
             lateMinutes={lateMinutes}
             workStartTime={effectiveWorkStartTime}

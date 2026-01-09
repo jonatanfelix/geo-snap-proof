@@ -221,7 +221,7 @@ const CameraCapture = ({
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
 
-    // Draw video frame to canvas
+    // Draw video frame to canvas FIRST before stopping camera
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     // Add watermark
@@ -287,14 +287,13 @@ const CameraCapture = ({
     ctx.font = `italic ${fontSize - 4}px Arial`;
     ctx.fillText('GeoAttend Verified', padding, startY + lineHeight * currentLine);
 
-    // Get the watermarked image
+    // Get the watermarked image BEFORE stopping camera to avoid race condition
     const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
     
-    // Stop camera but don't close - let parent handle close after mutation
+    // Now safe to stop camera after we have the image
     stopCamera();
     
     onCapture(imageDataUrl);
-    // Don't call onClose here - parent will close after mutation completes
   }, [employeeName, recordType, latitude, longitude, isLate, lateMinutes, onCapture, stopCamera]);
 
   const handleClose = useCallback(() => {
@@ -389,20 +388,19 @@ const CameraCapture = ({
                   onClick={capturePhoto}
                   className="flex-1"
                   size="lg"
-                  disabled={isLoading || !isReady || (!faceDetected && !modelLoading)}
+                  disabled={isLoading || !isReady || modelLoading || (!faceDetected && !modelLoading)}
                 >
                   <Camera className="h-5 w-5 mr-2" />
-                  {modelLoading ? 'Memuat...' : faceDetected ? 'Ambil Foto' : 'Arahkan Wajah ke Kamera'}
+                  {modelLoading ? 'Memuat AI...' : faceDetected ? 'Ambil Foto' : 'Arahkan Wajah ke Kamera'}
                 </Button>
                 
-                {/* Fallback button if face detection fails but user wants to proceed */}
+                {/* Fallback button - always enabled when ready and no face detected */}
                 {isReady && !modelLoading && !faceDetected && (
                   <Button
                     onClick={capturePhoto}
                     variant="outline"
                     size="lg"
                     className="border-2 border-foreground"
-                    disabled={isLoading || !isReady}
                   >
                     Tetap Ambil
                   </Button>
