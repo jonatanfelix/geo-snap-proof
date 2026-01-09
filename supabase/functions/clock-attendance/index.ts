@@ -98,10 +98,12 @@ Deno.serve(async (req) => {
       )
     }
 
-    // SECURITY CHECK 1: Reject high accuracy (unreliable GPS)
-    const MAX_ACCURACY_METERS = 100
+    // SECURITY CHECK 1: Reject extremely unreliable GPS
+    // NOTE: Desktop browsers often report 10-50km accuracy, so we use a high threshold for MVP
+    // In production mobile app, this should be tightened to ~100m
+    const MAX_ACCURACY_METERS = 50000
     if (accuracy_meters > MAX_ACCURACY_METERS) {
-      console.warn(`High accuracy rejected: ${accuracy_meters}m for user ${user.id}`)
+      console.warn(`Accuracy rejected: ${accuracy_meters}m for user ${user.id}`)
       return new Response(
         JSON.stringify({ 
           error: `Akurasi GPS terlalu rendah (${Math.round(accuracy_meters)}m). Coba di tempat terbuka.`, 
