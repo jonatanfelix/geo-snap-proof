@@ -102,13 +102,13 @@ const CameraCapture = ({
       console.log('Detection results:', results);
 
       // Check if any person detected with sufficient size
-      // Person must occupy at least 5% of the frame to be considered valid
-      // Lower threshold to allow partial faces/bodies
-      const minAreaRatio = 0.05;
+      // Person must occupy at least 20% of the frame to ensure full face is visible
+      // This ensures the face is large enough to be identifiable
+      const minAreaRatio = 0.20;
       const frameArea = canvas.width * canvas.height;
       
       const validPersonDetected = results.some((result: any) => {
-        if (result.label !== 'person' || result.score < 0.5) return false;
+        if (result.label !== 'person' || result.score < 0.7) return false;
         
         // Calculate bounding box area
         const box = result.box;
