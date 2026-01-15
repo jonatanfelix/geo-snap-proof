@@ -59,6 +59,14 @@ interface CompanySettings {
   early_leave_deduction_per_minute: number;
   late_penalty_per_minute: number;
   standard_work_hours: number;
+  bpjs_kesehatan_employee_rate: number;
+  bpjs_kesehatan_employer_rate: number;
+  bpjs_tk_jht_employee_rate: number;
+  bpjs_tk_jht_employer_rate: number;
+  bpjs_tk_jp_employee_rate: number;
+  bpjs_tk_jp_employer_rate: number;
+  ptkp_status_default: string;
+  use_pph21_calculation: boolean;
 }
 
 const AdminSettings = () => {
@@ -78,6 +86,19 @@ const AdminSettings = () => {
   const [earlyLeaveDeduction, setEarlyLeaveDeduction] = useState(0);
   const [latePenalty, setLatePenalty] = useState(1000);
   const [standardWorkHours, setStandardWorkHours] = useState(8);
+
+  // BPJS Configuration
+  const [bpjsKesehatanEmployee, setBpjsKesehatanEmployee] = useState(1.0);
+  const [bpjsKesehatanEmployer, setBpjsKesehatanEmployer] = useState(4.0);
+  const [bpjsTkJhtEmployee, setBpjsTkJhtEmployee] = useState(2.0);
+  const [bpjsTkJhtEmployer, setBpjsTkJhtEmployer] = useState(3.7);
+  const [bpjsTkJpEmployee, setBpjsTkJpEmployee] = useState(1.0);
+  const [bpjsTkJpEmployer, setBpjsTkJpEmployer] = useState(2.0);
+
+  // Tax Configuration
+  const [ptkpDefault, setPtkpDefault] = useState('TK/0');
+  const [usePph21, setUsePph21] = useState(false);
+
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [mapReady, setMapReady] = useState(false);
 
@@ -168,6 +189,18 @@ const AdminSettings = () => {
       setEarlyLeaveDeduction(company.early_leave_deduction_per_minute || 0);
       setLatePenalty(company.late_penalty_per_minute || 1000);
       setStandardWorkHours(company.standard_work_hours || 8);
+
+      // BPJS Configuration
+      setBpjsKesehatanEmployee(company.bpjs_kesehatan_employee_rate || 1.0);
+      setBpjsKesehatanEmployer(company.bpjs_kesehatan_employer_rate || 4.0);
+      setBpjsTkJhtEmployee(company.bpjs_tk_jht_employee_rate || 2.0);
+      setBpjsTkJhtEmployer(company.bpjs_tk_jht_employer_rate || 3.7);
+      setBpjsTkJpEmployee(company.bpjs_tk_jp_employee_rate || 1.0);
+      setBpjsTkJpEmployer(company.bpjs_tk_jp_employer_rate || 2.0);
+
+      // Tax Configuration
+      setPtkpDefault(company.ptkp_status_default || 'TK/0');
+      setUsePph21(company.use_pph21_calculation || false);
     }
   }, [company]);
 
@@ -196,6 +229,14 @@ const AdminSettings = () => {
           early_leave_deduction_per_minute: earlyLeaveDeduction,
           late_penalty_per_minute: latePenalty,
           standard_work_hours: standardWorkHours,
+          bpjs_kesehatan_employee_rate: bpjsKesehatanEmployee,
+          bpjs_kesehatan_employer_rate: bpjsKesehatanEmployer,
+          bpjs_tk_jht_employee_rate: bpjsTkJhtEmployee,
+          bpjs_tk_jht_employer_rate: bpjsTkJhtEmployer,
+          bpjs_tk_jp_employee_rate: bpjsTkJpEmployee,
+          bpjs_tk_jp_employer_rate: bpjsTkJpEmployer,
+          ptkp_status_default: ptkpDefault,
+          use_pph21_calculation: usePph21,
         })
         .eq('id', company.id);
 
