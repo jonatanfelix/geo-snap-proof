@@ -1,73 +1,96 @@
-# Welcome to your Lovable project
+# GeoAttend - Smart Geolocation Attendance System
 
-## Project info
+GeoAttend is a comprehensive attendance management solution designed for modern workforce tracking. It combines precise geolocation verification with robust administrative tools to manage office and field employees efficiently. Built with anti-fraud mechanisms to ensure authentic attendance records.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🚀 Key Features
 
-## How can I edit this code?
+### 📱 For Employees
+- **Smart Clock-In/Out**: 
+  - **Office Mode**: Validates location within a specific radius of the office.
+  - **Field Mode**: Records location for field duty staff.
+- **Live Location Verification**: Anti-fake GPS measures to ensure data integrity.
+- **Personal Dashboard**: View daily stats, attendance history, and working hours.
+- **Leave Management**: Request leave (sick, permit, annual leave) directly from the app.
 
-There are several ways of editing your application.
+### 🛠 For Admins
+- **Interactive Dashboard**: Real-time overview of daily attendance, late arrivals, and on-leave staff.
+- **Employee Management**: 
+  - Manage employee profiles, departments, and shifts.
+  - Assign specific roles (Admin, Developer, Employee).
+- **Payroll Automation**: 
+  - Auto-calculate working hours, overtime, and late deductions.
+  - Customizable penalty rates and standard work hours.
+  - Export payroll data to Excel (`.xlsx`).
+- **Comprehensive Reporting**: 
+  - Daily, monthly, and custom date range reports.
+  - Detailed audit logs for system activities.
+- **Company Settings**: Configure office location (lat/long), radius, work hours, and late penalties.
 
-**Use Lovable**
+## 💻 Tech Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- **Frontend**: [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) + [Vite](https://vitejs.dev/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) + [Shadcn UI](https://ui.shadcn.com/)
+- **Maps**: [Leaflet](https://leafletjs.com/) + [React-Leaflet](https://react-leaflet.js.org/)
+- **Backend & Database**: [Supabase](https://supabase.com/) (PostgreSQL, Auth, Edge Functions)
+- **Data Fetching**: [TanStack Query](https://tanstack.com/query/latest)
+- **Utilities**: `date-fns` (Date manipulation), `xlsx` (Excel export)
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🛠️ Installation & Setup
 
-**Use your preferred IDE**
+### Prerequisites
+- Node.js (v18+ recommended)
+- NPM or Yarn
+- A Supabase project
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### 1. Clone the Repository
+```bash
+git clone https://github.com/jonatanfelix/geo-snap-proof.git
+cd geo-snap-proof
 ```
 
-**Edit a file directly in GitHub**
+### 2. Install Dependencies
+```bash
+npm install
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 3. Environment Configuration
+Create a `.env` file in the root directory and add your Supabase credentials:
 
-**Use GitHub Codespaces**
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### 4. Run Development Server
+```bash
+npm run dev
+```
+The app will be available at `https://localhost:8081` (Note: HTTPS is enabled for geolocation testing).
 
-## What technologies are used for this project?
+## 🗄️ Database Setup (Supabase)
 
-This project is built with:
+This project uses Supabase for the backend. Ensure you have the necessary tables created.
+Migration files can be found in `supabase/migrations`.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Run migrations locally (if using Supabase CLI):
+```bash
+npx supabase migration up
+```
 
-## How can I deploy this project?
+## 🚀 Deployment
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+The project is optimized for deployment on Vercel or Netlify.
 
-## Can I connect a custom domain to my Lovable project?
+1. **Build the project:**
+   ```bash
+   npm run build
+   ```
+2. **Deploy the `dist` folder.**
 
-Yes, you can!
+## 🤝 Contributing
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Contributions are welcome! Please fork the repository and create a pull request.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 📝 License
+
+[MIT](LICENSE)
