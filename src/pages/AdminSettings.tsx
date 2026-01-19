@@ -152,7 +152,7 @@ const AdminSettings = () => {
         .maybeSingle();
 
       if (error) throw error;
-      return data as CompanySettings | null;
+      return data as unknown as CompanySettings | null;
     },
     enabled: isAdminOrDeveloper,
   });

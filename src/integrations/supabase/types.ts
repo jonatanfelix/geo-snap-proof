@@ -112,47 +112,77 @@ export type Database = {
       companies: {
         Row: {
           annual_leave_quota: number
+          bpjs_kesehatan_employee_rate: number | null
+          bpjs_kesehatan_employer_rate: number | null
+          bpjs_tk_jht_employee_rate: number | null
+          bpjs_tk_jht_employer_rate: number | null
+          bpjs_tk_jp_employee_rate: number | null
+          bpjs_tk_jp_employer_rate: number | null
           created_at: string
           early_leave_deduction_per_minute: number
           grace_period_minutes: number
           id: string
+          late_penalty_per_minute: number | null
           name: string
           office_latitude: number | null
           office_longitude: number | null
           overtime_rate_per_hour: number
           overtime_start_after_minutes: number
+          ptkp_status_default: string | null
           radius_meters: number
+          standard_work_hours: number | null
           updated_at: string
+          use_pph21_calculation: boolean | null
           work_start_time: string
         }
         Insert: {
           annual_leave_quota?: number
+          bpjs_kesehatan_employee_rate?: number | null
+          bpjs_kesehatan_employer_rate?: number | null
+          bpjs_tk_jht_employee_rate?: number | null
+          bpjs_tk_jht_employer_rate?: number | null
+          bpjs_tk_jp_employee_rate?: number | null
+          bpjs_tk_jp_employer_rate?: number | null
           created_at?: string
           early_leave_deduction_per_minute?: number
           grace_period_minutes?: number
           id?: string
+          late_penalty_per_minute?: number | null
           name: string
           office_latitude?: number | null
           office_longitude?: number | null
           overtime_rate_per_hour?: number
           overtime_start_after_minutes?: number
+          ptkp_status_default?: string | null
           radius_meters?: number
+          standard_work_hours?: number | null
           updated_at?: string
+          use_pph21_calculation?: boolean | null
           work_start_time?: string
         }
         Update: {
           annual_leave_quota?: number
+          bpjs_kesehatan_employee_rate?: number | null
+          bpjs_kesehatan_employer_rate?: number | null
+          bpjs_tk_jht_employee_rate?: number | null
+          bpjs_tk_jht_employer_rate?: number | null
+          bpjs_tk_jp_employee_rate?: number | null
+          bpjs_tk_jp_employer_rate?: number | null
           created_at?: string
           early_leave_deduction_per_minute?: number
           grace_period_minutes?: number
           id?: string
+          late_penalty_per_minute?: number | null
           name?: string
           office_latitude?: number | null
           office_longitude?: number | null
           overtime_rate_per_hour?: number
           overtime_start_after_minutes?: number
+          ptkp_status_default?: string | null
           radius_meters?: number
+          standard_work_hours?: number | null
           updated_at?: string
+          use_pph21_calculation?: boolean | null
           work_start_time?: string
         }
         Relationships: []
