@@ -129,10 +129,14 @@ const AdminPayroll = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from('companies')
-        .select('work_start_time, late_penalty_per_minute, standard_work_hours')
+        .select('*')
         .limit(1)
         .maybeSingle();
-      return data;
+      return data as {
+        work_start_time: string;
+        late_penalty_per_minute: number;
+        standard_work_hours: number;
+      } | null;
     },
     enabled: isAdminOrDeveloper,
   });
@@ -231,8 +235,8 @@ const AdminPayroll = () => {
       let overtimeHours = 0;
       let lateDeduction = 0;
 
-      const standardWorkHours = (company as any)?.standard_work_hours || 8;
-      const latePenaltyPerMinute = (company as any)?.late_penalty_per_minute || 1000;
+      const standardWorkHours = company?.standard_work_hours || 8;
+      const latePenaltyPerMinute = company?.late_penalty_per_minute || 1000;
       let sickDays = 0;
       let leaveDays = 0;
       let permitDays = 0;
@@ -328,7 +332,7 @@ const AdminPayroll = () => {
         permitDays,
       };
     });
-  }, [employees, dateRange, attendance, leaves, holidays, company?.work_start_time]);
+  }, [employees, dateRange, attendance, leaves, holidays, company]);
 
   // Export to Excel (Payroll Format)
   const exportPayrollXLSX = async () => {
@@ -345,7 +349,7 @@ const AdminPayroll = () => {
         [`Periode: ${monthLabel}`],
         [`Diekspor oleh: ${exportedBy}`],
         [`Waktu export: ${exportDate}`],
-        [`Catatan: Potongan telat = Rp ${(company as any)?.late_penalty_per_minute?.toLocaleString('id-ID') || '1.000'}/menit`],
+        [`Catatan: Potongan telat = Rp ${company?.late_penalty_per_minute?.toLocaleString('id-ID') || '1.000'}/menit`],
         [],
         [
           'No', 'Nama Karyawan', 'Departemen', 'Tipe',
